@@ -60,7 +60,7 @@ export type Database = {
           call_id: string
           caller_name: string | null
           created_at: string
-          duration: number | null
+          duration_seconds: number | null
           email: string | null
           escalated: boolean
           escalation_reason: string | null
@@ -69,7 +69,7 @@ export type Database = {
           outcome: string | null
           phone: string | null
           summary: string | null
-          transcript: Json
+          transcript: string | null
         }
         Insert: {
           appointment_id?: string | null
@@ -77,7 +77,7 @@ export type Database = {
           call_id: string
           caller_name?: string | null
           created_at?: string
-          duration?: number | null
+          duration_seconds?: number | null
           email?: string | null
           escalated?: boolean
           escalation_reason?: string | null
@@ -86,7 +86,7 @@ export type Database = {
           outcome?: string | null
           phone?: string | null
           summary?: string | null
-          transcript?: Json
+          transcript?: string | null
         }
         Update: {
           appointment_id?: string | null
@@ -94,7 +94,7 @@ export type Database = {
           call_id?: string
           caller_name?: string | null
           created_at?: string
-          duration?: number | null
+          duration_seconds?: number | null
           email?: string | null
           escalated?: boolean
           escalation_reason?: string | null
@@ -103,7 +103,7 @@ export type Database = {
           outcome?: string | null
           phone?: string | null
           summary?: string | null
-          transcript?: Json
+          transcript?: string | null
         }
         Relationships: [
           {

@@ -105,14 +105,14 @@ export const endCall = createServerFn({ method: "POST" })
         phone: data.state.phone,
         email: data.state.email,
         intent,
-        transcript: data.history,
+        transcript: JSON.stringify(data.history),
         summary: meta.summary,
         outcome: meta.outcome,
         appointment_required: Boolean(data.state.appointmentId),
         appointment_id: data.state.appointmentId,
         escalated: data.state.escalated,
         escalation_reason: data.state.escalationReason,
-        duration: data.duration,
+        duration_seconds: data.duration,
       });
       if (error) {
         console.error("call record insert failed", error);
@@ -147,7 +147,7 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async () =
     const [calls, appts] = await Promise.all([
       supabaseAdmin
         .from("call_records")
-        .select("id, created_at, caller_name, intent, summary, outcome, escalated, duration")
+        .select("id, created_at, caller_name, intent, summary, outcome, escalated, duration_seconds")
         .order("created_at", { ascending: false })
         .limit(50),
       supabaseAdmin
