@@ -378,29 +378,18 @@ export async function runAgentTurn(history: ChatMessage[], state: AgentState) {
   };
 }
 
-export async function detectIntent(history: ChatMessage[]) {
-  const convo = history
-    .slice(-6)
-    .map((m) => `${m.role === "user" ? "Caller" : "Agent"}: ${m.content}`)
-    .join("\n");
-  try {
-    const res = await groqChat({
-      model: FAST_MODEL,
-      temperature: 0,
-      max_tokens: 12,
-      messages: [
-        {
-          role: "system",
-          content: `Classify the caller's current intent. Reply with exactly one of: ${INTENTS.join(", ")}. No other text.`,
-        },
-        { role: "user", content: convo },
-      ],
-    });
-    const raw = (res.choices?.[0]?.message?.content ?? "").trim().toUpperCase();
-    return (INTENTS as readonly string[]).includes(raw) ? raw : "UNKNOWN";
-  } catch {
-    return "UNKNOWN";
-  }
+// Deterministic intent, derived from which tool actually ran this turn (or the
+// deterministic AgentState at call end) instead of a separate Groq classifier
+// call. This used to cost a full extra Groq request per turn — on top of being
+// unnecessary API load, it was routinely tripping rate limits on lower-tier
+// Groq keys since every turn made two parallel requests instead of one.
+export function deriveIntent(actions: string[], state: AgentState): string {
+  if (state.appointmentId || actions.includes("create_appointment")) return "APPOINTMENT_REQUEST";
+  if (state.escalated || actions.includes("create_escalation")) return "HUMAN_SUPPORT";
+  if (actions.includes("check_contact")) return "CONTACT_INFORMATION";
+  if (actions.includes("search_faq")) return "COMPANY_INFORMATION";
+  if (actions.length > 0) return "GENERAL_ENQUIRY";
+  return "UNKNOWN";
 }
 
 export async function summariseCall(history: ChatMessage[], state: AgentState) {

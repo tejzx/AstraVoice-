@@ -15,6 +15,7 @@ import { Route as CallRecordsRouteImport } from './routes/call-records'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as KnowledgeBaseRouteImport } from './routes/knowledge-base'
 import { Route as VoiceAgentRouteImport } from './routes/voice-agent'
+import { Route as ApiVapiWebhookRouteImport } from './routes/api/vapi-webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const VoiceAgentRoute = VoiceAgentRouteImport.update({
   path: '/voice-agent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVapiWebhookRoute = ApiVapiWebhookRouteImport.update({
+  id: '/api/vapi-webhook',
+  path: '/api/vapi-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/knowledge-base': typeof KnowledgeBaseRoute
   '/voice-agent': typeof VoiceAgentRoute
+  '/api/vapi-webhook': typeof ApiVapiWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/knowledge-base': typeof KnowledgeBaseRoute
   '/voice-agent': typeof VoiceAgentRoute
+  '/api/vapi-webhook': typeof ApiVapiWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/knowledge-base': typeof KnowledgeBaseRoute
   '/voice-agent': typeof VoiceAgentRoute
+  '/api/vapi-webhook': typeof ApiVapiWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/knowledge-base'
     | '/voice-agent'
+    | '/api/vapi-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/knowledge-base'
     | '/voice-agent'
+    | '/api/vapi-webhook'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/knowledge-base'
     | '/voice-agent'
+    | '/api/vapi-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   KnowledgeBaseRoute: typeof KnowledgeBaseRoute
   VoiceAgentRoute: typeof VoiceAgentRoute
+  ApiVapiWebhookRoute: typeof ApiVapiWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VoiceAgentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/vapi-webhook': {
+      id: '/api/vapi-webhook'
+      path: '/api/vapi-webhook'
+      fullPath: '/api/vapi-webhook'
+      preLoaderRoute: typeof ApiVapiWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   KnowledgeBaseRoute: KnowledgeBaseRoute,
   VoiceAgentRoute: VoiceAgentRoute,
+  ApiVapiWebhookRoute: ApiVapiWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -16,7 +16,7 @@ export type TurnInput = {
 export const agentTurn = createServerFn({ method: "POST" })
   .inputValidator((d: TurnInput) => d)
   .handler(async ({ data }) => {
-    const { runAgentTurn, detectIntent, detectFastIntent, fastReply } =
+    const { runAgentTurn, deriveIntent, detectFastIntent, fastReply } =
       await import("./receptionist.server");
 
     // Fast conversation layer: greetings, thanks, goodbye, help and small talk are
@@ -35,10 +35,10 @@ export const agentTurn = createServerFn({ method: "POST" })
     }
 
     try {
-      const [turn, intent] = await Promise.all([
-        runAgentTurn(data.history, data.state),
-        detectIntent(data.history),
-      ]);
+      // One Groq call per turn, not two — intent is derived from whichever
+      // tool actually ran, not from a second classifier request.
+      const turn = await runAgentTurn(data.history, data.state);
+      const intent = deriveIntent(turn.actions, turn.state);
       return {
         ok: true as const,
         reply: turn.reply,
@@ -83,18 +83,16 @@ export const endCall = createServerFn({ method: "POST" })
           : "Resolved",
       caller_name: data.state.callerName,
     };
+    // Deterministic — no Groq call needed to know the final intent, the
+    // AgentState already tells us whether an appointment or escalation happened.
     let intent = "UNKNOWN";
 
     try {
-      const { summariseCall, detectIntent } = await import("./receptionist.server");
-      const [summarised, detectedIntent] = await Promise.all([
-        summariseCall(data.history, data.state),
-        detectIntent(data.history),
-      ]);
-      meta = summarised;
-      intent = detectedIntent;
+      const { summariseCall, deriveIntent } = await import("./receptionist.server");
+      meta = await summariseCall(data.history, data.state);
+      intent = deriveIntent([], data.state);
     } catch (e) {
-      console.error("endCall: summary/intent generation failed, using fallback summary", e);
+      console.error("endCall: summary generation failed, using fallback summary", e);
     }
 
     try {
