@@ -71,7 +71,7 @@ export function fastReply(intent: FastIntent): string {
   return FAST_REPLIES[intent];
 }
 
-const SYSTEM_PROMPT = `You are an AI voice receptionist for AstraVoice.
+export const SYSTEM_PROMPT = `You are an AI voice receptionist for AstraVoice.
 
 Rules:
 - Greet politely, stay professional, friendly, concise and natural.
@@ -84,7 +84,7 @@ Rules:
 - If the caller wants a human, briefly ask the reason, use check_contact for the department, then call create_escalation and explain the next step.
 - Do not output markdown, emojis, lists or special characters; output plain speech text only.`;
 
-const tools = [
+export const tools = [
   {
     type: "function",
     function: {
@@ -167,8 +167,11 @@ async function admin() {
 }
 
 // ---- Deterministic tool implementations -------------------------------------
+// Exported so both the browser/Groq flow (below) and the Vapi phone-call
+// webhook (src/routes/api/vapi-webhook.ts) call the exact same logic — one
+// source of truth for the knowledge base, contacts, and appointment rules.
 
-async function searchFaq(query: string) {
+export async function searchFaq(query: string) {
   const db = await admin();
   const { data, error } = await db.from("company_faq").select("category, question, answer");
   if (error) return { error: "Knowledge base unavailable" };
@@ -188,7 +191,7 @@ async function searchFaq(query: string) {
     : { results: [], note: "No matching approved information found." };
 }
 
-async function checkContact(department: string) {
+export async function checkContact(department: string) {
   const db = await admin();
   const { data, error } = await db
     .from("contacts")
@@ -204,7 +207,7 @@ async function checkContact(department: string) {
   };
 }
 
-function validateAppointment(a: Record<string, any>) {
+export function validateAppointment(a: Record<string, any>) {
   const errors: string[] = [];
   if (!a["caller_name"]) errors.push("caller name is missing");
   if (!a["department"]) errors.push("department is missing");
@@ -222,22 +225,15 @@ function validateAppointment(a: Record<string, any>) {
   return errors;
 }
 
-const AFFIRMATIVE =
-  /\b(yes|yeah|yep|correct|confirm|confirmed|book it|go ahead|sure|right|please do|that'?s right|ok|okay)\b/i;
-
-async function createAppointment(a: Record<string, any>, lastUserMessage: string) {
+// Validates + writes the appointment row. Does NOT check confirmation — callers
+// (Groq flow, Vapi flow) each apply their own confirmation gate before calling
+// this, since they have different ways of knowing the caller actually said yes.
+export async function insertAppointmentRow(a: Record<string, any>) {
   if (!a["purpose"]) {
     return {
       success: false,
       reason: "missing_purpose",
       note: "Ask the caller the purpose of the appointment first.",
-    };
-  }
-  if (a["confirmed"] !== true || !AFFIRMATIVE.test(lastUserMessage)) {
-    return {
-      success: false,
-      reason: "not_confirmed",
-      note: "Read the full appointment details back to the caller and wait for an explicit yes before calling this tool again.",
     };
   }
   const errors = validateAppointment(a);
@@ -275,6 +271,23 @@ async function createAppointment(a: Record<string, any>, lastUserMessage: string
     .single();
   if (error || !data) return { success: false, reason: "database_error" };
   return { success: true, appointment_id: data.id, status: "Scheduled" };
+}
+
+const AFFIRMATIVE =
+  /\b(yes|yeah|yep|correct|confirm|confirmed|book it|go ahead|sure|right|please do|that'?s right|ok|okay)\b/i;
+
+// Groq flow's confirmation gate: requires both the tool's `confirmed` flag AND
+// an affirmative word actually present in the caller's last message, since we
+// can't fully trust the smaller/faster model's judgement on its own.
+async function createAppointment(a: Record<string, any>, lastUserMessage: string) {
+  if (a["confirmed"] !== true || !AFFIRMATIVE.test(lastUserMessage)) {
+    return {
+      success: false,
+      reason: "not_confirmed",
+      note: "Read the full appointment details back to the caller and wait for an explicit yes before calling this tool again.",
+    };
+  }
+  return insertAppointmentRow(a);
 }
 
 // ---- Agent turn --------------------------------------------------------------
